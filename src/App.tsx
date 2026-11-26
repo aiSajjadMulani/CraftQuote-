@@ -4,7 +4,6 @@ import { QuotationBuilder } from './components/QuotationBuilder';
 import { QuotationPreview } from './components/QuotationPreview';
 import { BusinessDetails, QuotationDraft } from './types/quotation';
 import { calculateQuotationTotals, formatCurrency } from './utils/calculations';
-import { generateQuotationPdf } from './utils/pdfGenerator';
 import {
   createEmptyDraft,
   formatQuotationNumber,
@@ -31,12 +30,10 @@ export default function App() {
     saveDraft(draft);
   }, [draft]);
 
-  // Auto-persist business details when updated if already saved once
+  // Auto-persist business details to localStorage on every change
   const handleUpdateBusiness = (updated: BusinessDetails) => {
     setBusiness(updated);
-    if (isBusinessSaved) {
-      saveBusinessDetails(updated);
-    }
+    saveBusinessDetails(updated);
   };
 
   const handleSaveBusiness = () => {
@@ -57,7 +54,12 @@ export default function App() {
   };
 
   const handleStartNewQuotation = () => {
-    if (draft.items.length > 0 && !confirmNewQuote) {
+    const hasProgress =
+      draft.items.length > 0 ||
+      draft.customer.name.trim() !== '' ||
+      draft.customer.projectName.trim() !== '';
+
+    if (hasProgress && !confirmNewQuote) {
       setConfirmNewQuote(true);
       return;
     }
@@ -66,6 +68,11 @@ export default function App() {
     setDraft(createEmptyDraft(nextNum));
     setConfirmNewQuote(false);
     setMobileTab('builder');
+  };
+
+  const handleHeaderDownloadPdf = async () => {
+    const { generateQuotationPdf } = await import('./utils/pdfGenerator');
+    generateQuotationPdf(business, draft, totals);
   };
 
   const totals = useMemo(
@@ -147,7 +154,7 @@ export default function App() {
           <div className="flex items-center gap-3 shrink-0">
             <button
               type="button"
-              onClick={() => generateQuotationPdf(business, draft, totals)}
+              onClick={handleHeaderDownloadPdf}
               className="inline-flex items-center gap-2 px-4 py-2 text-xs font-semibold text-white bg-[#1E3A34] hover:bg-[#162C27] rounded-lg transition-colors whitespace-nowrap shrink-0"
             >
               <Download className="w-3.5 h-3.5" />
@@ -262,7 +269,7 @@ export default function App() {
           {/* Quotation PDF Layout */}
           {(viewMode === 'split' || viewMode === 'preview') && (
             <div
-              className={`${
+              className={`print:block print:col-span-12 print:static ${
                 viewMode === 'split'
                   ? 'lg:col-span-6 xl:col-span-6 lg:sticky lg:top-20'
                   : ''

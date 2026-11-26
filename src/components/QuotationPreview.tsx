@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { Check, Copy, Download, MessageCircle, Printer } from 'lucide-react';
 import { BusinessDetails, QuotationDraft, QuotationTotals } from '../types/quotation';
 import { formatCurrency, formatQuantity } from '../utils/calculations';
-import { generateQuotationPdf } from '../utils/pdfGenerator';
 import { buildWhatsAppMessage, buildWhatsAppUrl } from '../utils/whatsapp';
 
 interface QuotationPreviewProps {
@@ -17,13 +16,21 @@ export const QuotationPreview: React.FC<QuotationPreviewProps> = ({
   totals,
 }) => {
   const [copied, setCopied] = useState(false);
+  const [exporting, setExporting] = useState(false);
 
   const sym = business.currencySymbol || '₹';
   const companyName = business.companyName.trim() || 'Furniture & Interior Studio';
   const whatsappUrl = buildWhatsAppUrl(business, draft, totals);
 
-  const handleDownloadPdf = () => {
-    generateQuotationPdf(business, draft, totals);
+  const handleDownloadPdf = async () => {
+    if (exporting) return;
+    setExporting(true);
+    try {
+      const { generateQuotationPdf } = await import('../utils/pdfGenerator');
+      generateQuotationPdf(business, draft, totals);
+    } finally {
+      setExporting(false);
+    }
   };
 
   const handleCopySummary = async () => {
@@ -89,10 +96,11 @@ export const QuotationPreview: React.FC<QuotationPreviewProps> = ({
           <button
             type="button"
             onClick={handleDownloadPdf}
-            className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-medium text-white bg-[#1E3A34] hover:bg-[#162C27] rounded-lg transition-colors whitespace-nowrap shrink-0"
+            disabled={exporting}
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-medium text-white bg-[#1E3A34] hover:bg-[#162C27] disabled:opacity-60 rounded-lg transition-colors whitespace-nowrap shrink-0"
           >
             <Download className="w-3.5 h-3.5" />
-            Download PDF
+            {exporting ? 'Generating...' : 'Download PDF'}
           </button>
         </div>
       </div>

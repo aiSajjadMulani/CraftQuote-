@@ -2,6 +2,18 @@ import { jsPDF } from 'jspdf';
 import { BusinessDetails, QuotationDraft, QuotationTotals } from '../types/quotation';
 import { formatPdfCurrency, formatQuantity } from './calculations';
 
+function sanitizePdfText(value: string): string {
+  return value
+    .replace(/₹/g, 'Rs. ')
+    .replace(/€/g, 'EUR ')
+    .replace(/£/g, 'GBP ')
+    .replace(/[—–]/g, '-')
+    .replace(/[‘’]/g, "'")
+    .replace(/[“”]/g, '"')
+    .replace(/×/g, 'x')
+    .replace(/[^\x20-\x7E\n\r]/g, '');
+}
+
 export function generateQuotationPdf(
   business: BusinessDetails,
   draft: QuotationDraft,
@@ -28,7 +40,7 @@ export function generateQuotationPdf(
   let y = 16;
 
   // Top Header Band
-  const companyName = business.companyName.trim() || 'Furniture & Interior Studio';
+  const companyName = sanitizePdfText(business.companyName.trim()) || 'Furniture & Interior Studio';
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(17);
   doc.setTextColor(...accentDark);
@@ -49,24 +61,24 @@ export function generateQuotationPdf(
 
   let leftY = y;
   if (business.tagline.trim()) {
-    doc.text(business.tagline.trim(), marginX, leftY);
+    doc.text(sanitizePdfText(business.tagline.trim()), marginX, leftY);
     leftY += 4.2;
   }
   if (business.address.trim()) {
-    const addrLines = doc.splitTextToSize(business.address.trim(), 95);
+    const addrLines = doc.splitTextToSize(sanitizePdfText(business.address.trim()), 95);
     doc.text(addrLines, marginX, leftY);
     leftY += addrLines.length * 4;
   }
   const contactParts: string[] = [];
-  if (business.phone.trim()) contactParts.push(`Ph: ${business.phone.trim()}`);
-  if (business.email.trim()) contactParts.push(`Email: ${business.email.trim()}`);
+  if (business.phone.trim()) contactParts.push(`Ph: ${sanitizePdfText(business.phone.trim())}`);
+  if (business.email.trim()) contactParts.push(`Email: ${sanitizePdfText(business.email.trim())}`);
   if (contactParts.length > 0) {
     doc.text(contactParts.join('  |  '), marginX, leftY);
     leftY += 4.2;
   }
   if (business.gstin.trim()) {
     doc.setFont('helvetica', 'bold');
-    doc.text(`GSTIN: ${business.gstin.trim()}`, marginX, leftY);
+    doc.text(`GSTIN: ${sanitizePdfText(business.gstin.trim())}`, marginX, leftY);
     doc.setFont('helvetica', 'normal');
     leftY += 4.2;
   }
@@ -74,9 +86,9 @@ export function generateQuotationPdf(
   // Quotation metadata right
   let rightY = y;
   const metaRows: [string, string][] = [
-    ['Quotation No:', draft.meta.quotationNumber || '-'],
-    ['Date:', draft.meta.date || '-'],
-    ['Valid Until:', draft.meta.validUntil || '-'],
+    ['Quotation No:', sanitizePdfText(draft.meta.quotationNumber) || '-'],
+    ['Date:', sanitizePdfText(draft.meta.date) || '-'],
+    ['Valid Until:', sanitizePdfText(draft.meta.validUntil) || '-'],
   ];
 
   metaRows.forEach(([label, value]) => {
@@ -102,10 +114,10 @@ export function generateQuotationPdf(
   doc.setDrawColor(...borderHairline);
   const custBoxStartY = y;
 
-  const customerName = draft.customer.name.trim() || 'Client Name';
-  const customerMobile = draft.customer.mobile.trim() || '-';
-  const projectName = draft.customer.projectName.trim() || '-';
-  const siteAddr = draft.customer.siteAddress.trim();
+  const customerName = sanitizePdfText(draft.customer.name.trim()) || 'Client Name';
+  const customerMobile = sanitizePdfText(draft.customer.mobile.trim()) || '-';
+  const projectName = sanitizePdfText(draft.customer.projectName.trim()) || '-';
+  const siteAddr = sanitizePdfText(draft.customer.siteAddress.trim());
   const siteAddrLines = siteAddr ? doc.splitTextToSize(siteAddr, 80) : [];
   const boxHeight = Math.max(20, 14 + siteAddrLines.length * 4);
 
@@ -179,9 +191,9 @@ export function generateQuotationPdf(
     y += 14;
   } else {
     draft.items.forEach((item, index) => {
-      const nameLines = doc.splitTextToSize(item.name || 'Untitled Item', 70);
+      const nameLines = doc.splitTextToSize(sanitizePdfText(item.name) || 'Untitled Item', 70);
       const descLines = item.description.trim()
-        ? doc.splitTextToSize(item.description.trim(), 70)
+        ? doc.splitTextToSize(sanitizePdfText(item.description.trim()), 70)
         : [];
       const rowHeight = Math.max(10, 5 + nameLines.length * 4 + descLines.length * 3.6 + 2);
 
@@ -193,7 +205,7 @@ export function generateQuotationPdf(
         doc.setFontSize(9);
         doc.setTextColor(...inkMuted);
         doc.text(
-          `${companyName} — Quotation ${draft.meta.quotationNumber} (Continued)`,
+          `${companyName} - Quotation ${sanitizePdfText(draft.meta.quotationNumber)} (Continued)`,
           marginX,
           y
         );
@@ -231,9 +243,9 @@ export function generateQuotationPdf(
       doc.setFont('helvetica', 'normal');
       doc.setFontSize(8.2);
       doc.setTextColor(...inkMuted);
-      let dimText = '—';
+      let dimText = '-';
       if (item.unit === 'Sq. Ft.' && item.length > 0 && item.width > 0) {
-        dimText = `${item.length} × ${item.width} ft`;
+        dimText = `${item.length} x ${item.width} ft`;
       } else if (item.unit === 'Running Ft.' && item.length > 0) {
         dimText = `${item.length} ft`;
       }
@@ -272,10 +284,10 @@ export function generateQuotationPdf(
 
   // Check if totals + terms fit on current page
   const termsLines = business.terms.trim()
-    ? doc.splitTextToSize(business.terms.trim(), 98)
+    ? doc.splitTextToSize(sanitizePdfText(business.terms.trim()), 98)
     : [];
   const notesLines = draft.meta.notes.trim()
-    ? doc.splitTextToSize(`Note: ${draft.meta.notes.trim()}`, 98)
+    ? doc.splitTextToSize(`Note: ${sanitizePdfText(draft.meta.notes.trim())}`, 98)
     : [];
   const neededFooterHeight = Math.max(46, (termsLines.length + notesLines.length) * 4 + 28);
 

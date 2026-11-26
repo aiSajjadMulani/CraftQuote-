@@ -2,5 +2,7 @@
   "name": "CraftQuote — Furniture & Interior Quotation",
   "description": "Lightweight furniture and interior quotation builder with automatic calculations, GST, A4 PDF export, and WhatsApp sharing.",
   "requestFramePermissions": [],
-  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
 }
