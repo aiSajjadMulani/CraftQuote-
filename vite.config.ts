@@ -6,7 +6,7 @@ import {defineConfig} from 'vite';
 
 export default defineConfig(() => {
   return {
-    base: './CraftQuote-/',
+    base: './',
     plugins: [
       react(),
       tailwindcss(), 
