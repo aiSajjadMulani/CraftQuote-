@@ -6,10 +6,10 @@ import {defineConfig} from 'vite';
 
 export default defineConfig(() => {
   return {
-    base: '/CraftQuote-/',
+   
     plugins: [
       react(),
-      tailwindcss(),
+      tailwindcss(), base: '/CraftQuote-/'
       // Copies src/assets into dist/ so root-relative URLs like
       // "/src/assets/images/..." (e.g. generate_image output) still resolve
       // in production builds. Do not remove.
